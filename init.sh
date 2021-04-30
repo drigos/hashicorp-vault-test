@@ -68,6 +68,15 @@ echo "Pending"
 # https://stackoverflow.com/questions/64757450/how-to-set-up-vault-jwt-authentication-with-auto-auth
 # curl -s -X POST -d '{ "jwt": "your_jwt", "role": "demo" }' ${VAULT_ADDR}/auth/jwt/login
 
+echo "System: create private key"
+openssl genrsa -aes256 -out private_key.pem 2048
+openssl rsa -pubout -in private_key.pem -out public_key.pem
+
+PUBLIC_KEY=$(sed -z 's/\n/\\n/g;s/\\n$//' public_key.pem)
+
+echo "App: creating jwt validation"
+curl -s -X POST -H "X-Vault-Token: ${APP_TOKEN}" -d "{\"jwt_validation_pubkeys\": \"${PUBLIC_KEY}\"}" ${VAULT_ADDR}/auth/jwt/config | jq
+
 echo ""
 echo "AUTH TYPE: Username & Password"
 echo "------------------------------"
