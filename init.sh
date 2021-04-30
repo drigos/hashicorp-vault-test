@@ -67,6 +67,7 @@ echo "--------------"
 # https://stackoverflow.com/questions/64757450/how-to-set-up-vault-jwt-authentication-with-auto-auth
 # curl -s -X POST -d '{ "jwt": "your_jwt", "role": "demo" }' ${VAULT_ADDR}/auth/jwt/login
 
+echo "App: creating jwt validation"
 JWT_AUTH_ROLE=$(curl -s -H "X-Vault-Token: ${ROOT_TOKEN}" ${VAULT_ADDR}/sys/auth | jq '."jwt/".uuid')
 test "${JWT_AUTH_ROLE}" = "null" && curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d '{ "type": "jwt", "description": "Login with JWT" }' ${VAULT_ADDR}/sys/auth/jwt
 echo "Jwt auth type: ${JWT_AUTH_ROLE/null/created}"
@@ -75,16 +76,14 @@ echo "System: create private key"
 openssl genrsa -aes256 -passout pass:igor -out private_key.pem 2048
 openssl rsa -pubout -passin pass:igor -in private_key.pem -out public_key.pem
 
-#PUBLIC_KEY=$(sed -z 's/\n/\\n/g;s/\\n$//' public_key.pem)
-
 PUBLIC_KEY=$(jq -Rs '' < public_key.pem)
 
-echo "App: creating jwt validation"
-curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d "{\"jwt_validation_pubkeys\": ${PUBLIC_KEY}}" ${VAULT_ADDR}/auth/jwt/config | jq
+echo "App: configure jwt validation"
+curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d "{\"jwt_validation_pubkeys\": ${PUBLIC_KEY}, \"bound_issuer\": \"www.soufan.com.br\"}" ${VAULT_ADDR}/auth/jwt/config | jq
 echo "App: configured jwt"
 
 echo "App: Configure role"
-curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d '{ "policies": ["my-policy"], "role_type": "jwt", "bound_subject": "igor", "user_claim": "igor"}' ${VAULT_ADDR}/auth/jwt/role/my-role
+JWT_ROLE=curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d '{ "policies": ["my-policy"], "role_type": "jwt", "bound_subject": "igor", "user_claim": "igor"}' ${VAULT_ADDR}/auth/jwt/role/my-role
 echo "App: Role configured"
 
 function b64enc() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
@@ -97,7 +96,8 @@ HEADER='{
 
 payload='{
     "igor": "igor",
-	"sub": "igor"
+	"sub": "igor",
+    "iss": "www.soufan.com.br"
 }'
 
 PAYLOAD=$(
