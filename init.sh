@@ -51,7 +51,7 @@ APP_TOKEN=$(curl -s -X POST -d "{ \"role_id\": \"${ROLE_ID}\", \"secret_id\": \"
 echo "App token: ${APP_TOKEN}"
 
 echo "App: creating secret bar"
-curl -s -X POST -H "X-Vault-Token: ${APP_TOKEN}" -d '{ "data": { "secret": "short-secret" } }' ${VAULT_ADDR}/secret/data/bar | jq #'.data.created_time'
+curl -s -X POST -H "X-Vault-Token: ${APP_TOKEN}" -d '{ "data": { "secret": "short-secret" } }' ${VAULT_ADDR}/secret/data/bar | jq '.data.created_time'
 echo "Root: reading secret bar"
 curl -s -H "X-Vault-Token: ${ROOT_TOKEN}" ${VAULT_ADDR}/secret/data/bar | jq -c '.data'
 
@@ -64,18 +64,68 @@ echo ""
 echo "AUTH TYPE: JWT"
 echo "--------------"
 
-echo "Pending"
 # https://stackoverflow.com/questions/64757450/how-to-set-up-vault-jwt-authentication-with-auto-auth
 # curl -s -X POST -d '{ "jwt": "your_jwt", "role": "demo" }' ${VAULT_ADDR}/auth/jwt/login
 
-echo "System: create private key"
-openssl genrsa -aes256 -out private_key.pem 2048
-openssl rsa -pubout -in private_key.pem -out public_key.pem
+JWT_AUTH_ROLE=$(curl -s -H "X-Vault-Token: ${ROOT_TOKEN}" ${VAULT_ADDR}/sys/auth | jq '."jwt/".uuid')
+test "${JWT_AUTH_ROLE}" = "null" && curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d '{ "type": "jwt", "description": "Login with JWT" }' ${VAULT_ADDR}/sys/auth/jwt
+echo "Jwt auth type: ${JWT_AUTH_ROLE/null/created}"
 
-PUBLIC_KEY=$(sed -z 's/\n/\\n/g;s/\\n$//' public_key.pem)
+echo "System: create private key"
+openssl genrsa -aes256 -passout pass:igor -out private_key.pem 2048
+openssl rsa -pubout -passin pass:igor -in private_key.pem -out public_key.pem
+
+#PUBLIC_KEY=$(sed -z 's/\n/\\n/g;s/\\n$//' public_key.pem)
+
+PUBLIC_KEY=$(jq -Rs '' < public_key.pem)
 
 echo "App: creating jwt validation"
-curl -s -X POST -H "X-Vault-Token: ${APP_TOKEN}" -d "{\"jwt_validation_pubkeys\": \"${PUBLIC_KEY}\"}" ${VAULT_ADDR}/auth/jwt/config | jq
+curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d "{\"jwt_validation_pubkeys\": ${PUBLIC_KEY}}" ${VAULT_ADDR}/auth/jwt/config | jq
+echo "App: configured jwt"
+
+echo "App: Configure role"
+curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d '{ "policies": ["my-policy"], "role_type": "jwt", "bound_subject": "igor", "user_claim": "igor"}' ${VAULT_ADDR}/auth/jwt/role/my-role
+echo "App: Role configured"
+
+function b64enc() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
+function rs_sign() { openssl dgst -binary -sha256 -passin pass:igor -sign private_key.pem; }
+
+HEADER='{
+    "type": "JWT",
+    "alg": "RS256"
+}'
+
+payload='{
+    "igor": "igor",
+	"sub": "igor"
+}'
+
+PAYLOAD=$(
+	echo "${payload}" | jq --arg time_str "$(date +%s)" \
+	'
+	($time_str | tonumber) as $time_num
+	| .iat=$time_num
+	| .exp=($time_num + 60 * 60)
+	'
+)
+
+JWT_HDR_B64="$(echo -n "$HEADER" | b64enc)"
+JWT_PAY_B64="$(echo -n "$PAYLOAD" | b64enc)"
+UNSIGNED_JWT="$JWT_HDR_B64.$JWT_PAY_B64"
+SIGNATURE=$(echo -n "$UNSIGNED_JWT" | rs_sign | b64enc)
+
+JWT_TOKEN="$UNSIGNED_JWT.$SIGNATURE"
+APP_TOKEN=$(curl -s -X POST -d "{ \"role\": \"my-role\", \"jwt\": \"${JWT_TOKEN}\" }" ${VAULT_ADDR}/auth/jwt/login | jq -r '.auth.client_token')
+
+echo "App: creating secret bar"
+curl -s -X POST -H "X-Vault-Token: ${APP_TOKEN}" -d '{ "data": { "secret": "short-secret" } }' ${VAULT_ADDR}/secret/data/bar | jq '.data.created_time'
+echo "Root: reading secret bar"
+curl -s -H "X-Vault-Token: ${ROOT_TOKEN}" ${VAULT_ADDR}/secret/data/bar | jq -c '.data'
+
+echo "Root: creating secret foo"
+curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d '{ "data": { "secret": "my-long-long-secret" } }' ${VAULT_ADDR}/secret/data/foo | jq '.data.created_time'
+echo "App: reading secret foo"
+curl -s -H "X-Vault-Token: ${APP_TOKEN}" ${VAULT_ADDR}/secret/data/foo | jq -c '.data'
 
 echo ""
 echo "AUTH TYPE: Username & Password"
