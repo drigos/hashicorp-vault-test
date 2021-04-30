@@ -65,7 +65,6 @@ echo "AUTH TYPE: JWT"
 echo "--------------"
 
 # https://stackoverflow.com/questions/64757450/how-to-set-up-vault-jwt-authentication-with-auto-auth
-# curl -s -X POST -d '{ "jwt": "your_jwt", "role": "demo" }' ${VAULT_ADDR}/auth/jwt/login
 
 echo "App: creating jwt validation"
 JWT_AUTH_ROLE=$(curl -s -H "X-Vault-Token: ${ROOT_TOKEN}" ${VAULT_ADDR}/sys/auth | jq '."jwt/".uuid')
@@ -138,5 +137,3 @@ echo "---"
 
 echo ""
 echo "Reference: https://www.vaultproject.io/api-docs/system"
-
-#curl -s -H "X-Vault-Token: ${ROOT_TOKEN}" ${VAULT_ADDR}/sys/auth| jq
