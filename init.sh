@@ -4,12 +4,12 @@ VAULT_ADDR=http://127.0.0.1:8200/v1
 
 # N unseal key > combined key > encrypted master key > encrypted kering > encrypted data
 
-#if [ -z "${ROOT_TOKEN}" -o -z "${UNSEAL_KEY}" ];
-#then
-    echo 'ROOT_CREDENTIAL=$(curl -s -X POST -d '{ "secret_shares": 1, "secret_threshold": 1 }' ${VAULT_ADDR}/sys/init)'
+if [ -z "${ROOT_TOKEN}" -o -z "${UNSEAL_KEY}" ];
+then
+    ROOT_CREDENTIAL=$(curl -s -X POST -d '{ "secret_shares": 1, "secret_threshold": 1 }' ${VAULT_ADDR}/sys/init)
     UNSEAL_KEY=$(echo ${ROOT_CREDENTIAL} | jq -r '.keys_base64[0]')
     ROOT_TOKEN=$(echo ${ROOT_CREDENTIAL} | jq -r '.root_token')
-#fi
+fi
 
 echo "Export this variables:"
 echo "    export UNSEAL_KEY=${UNSEAL_KEY}"
