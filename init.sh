@@ -97,6 +97,13 @@ function userpass() {
   token_test "${MOUNT_PATH}" "${app_token}"
 }
 
+function github_auth(){
+  # https://docs.gitlab.com/ce/integration/vault.html
+  # https://learn.hashicorp.com/tutorials/vault/getting-started-authentication
+  # https://www.vaultproject.io/docs/auth/jwt#redirect-uris
+  # https://www.vaultproject.io/api-docs/auth/jwt
+}
+
 function main() {
   setup
   policy
