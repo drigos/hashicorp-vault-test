@@ -12,6 +12,7 @@ source policy.sh
 
 source approle.sh
 source jwt.sh
+source user_pass.sh
 
 # N unseal key > combined key > encrypted master key > encrypted keyring > encrypted data
 
@@ -78,11 +79,28 @@ function jwt() {
   token_test "${MOUNT_PATH}" "${app_token}"
 }
 
+function userpass() {
+  printf "\n> AUTH TYPE: USER AND PASSWORD\n\n"
+  # https://stackoverflow.com/questions/64757450/how-to-set-up-vault-jwt-authentication-with-auto-auth
+
+  local auth_path=userpass
+  local role_path=my-role
+  local user=igor
+  local pass=123456
+  local jwt_issuer=www.domain.com
+
+  enable_auth_type "${auth_path}" userpass
+  userpass_create_role "${auth_path}" "${role_path}" "${POLICY_PATH}" "${user}" "${jwt_claim}"
+  userpass_create_user "${auth_path}" "${user}" "${pass}" "${jwt_issuer}"
+  userpass_login "${auth_path}" "${user}" "${pass}" "${jwt_issuer}"
+}
+
 function main() {
   setup
   policy
   approle
   jwt
+  userpass
 }
 
 main
