@@ -88,10 +88,13 @@ function userpass() {
   local user=igor
   local pass=123456
   local jwt_issuer=www.domain.com
+  local app_token
 
   enable_auth_type "${auth_path}" userpass
-  userpass_create_user "${auth_path}" "${user}" "${pass}" "${jwt_issuer}"
+  userpass_create_user "${auth_path}" "${user}" "${pass}" "${jwt_issuer}" "${POLICY_PATH}"
   userpass_login "${auth_path}" "${user}" "${pass}" "${jwt_issuer}"
+  read -r app_token <&3
+  token_test "${MOUNT_PATH}" "${app_token}"
 }
 
 function main() {
