@@ -90,7 +90,6 @@ function userpass() {
   local jwt_issuer=www.domain.com
 
   enable_auth_type "${auth_path}" userpass
-  userpass_create_role "${auth_path}" "${role_path}" "${POLICY_PATH}" "${user}" "${jwt_claim}"
   userpass_create_user "${auth_path}" "${user}" "${pass}" "${jwt_issuer}"
   userpass_login "${auth_path}" "${user}" "${pass}" "${jwt_issuer}"
 }
