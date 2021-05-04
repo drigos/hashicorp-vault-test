@@ -102,6 +102,7 @@ function github_auth(){
   # https://learn.hashicorp.com/tutorials/vault/getting-started-authentication
   # https://www.vaultproject.io/docs/auth/jwt#redirect-uris
   # https://www.vaultproject.io/api-docs/auth/jwt
+  echo
 }
 
 function main() {
