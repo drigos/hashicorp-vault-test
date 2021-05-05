@@ -13,6 +13,7 @@ source policy.sh
 source approle.sh
 source jwt.sh
 source user_pass.sh
+source oidc.sh
 
 # N unseal key > combined key > encrypted master key > encrypted keyring > encrypted data
 
@@ -97,14 +98,25 @@ function userpass() {
 }
 
 function gitlab_oidc() {
-  # https://docs.gitlab.com/ce/integration/vault.html
-  # https://www.vaultproject.io/docs/auth/jwt#oidc-authentication
-  echo
-}
-
-function github() {
   # https://learn.hashicorp.com/tutorials/vault/getting-started-authentication
-  echo
+  # https://www.vaultproject.io/docs/auth/jwt#redirect-uris
+  # https://www.vaultproject.io/api-docs/auth/jwt
+
+  printf "\n> AUTH TYPE: Gitlab\n\n"
+  local auth_path=oidc
+  local role_path=my-role
+  local oidc_discovery_url=https://gitlab.com
+  local oidc_client_id=RANDOM_ID
+  local oidc_client_secret=RANDOM_SECRET
+  local allowed_redirect_uris='["http://localhost:8200/ui/vault/auth/oidc/oidc/callback", "http://127.0.0.1:8200/ui/vault/auth/oidc/oidc/callback", "http://localhost:8250/oidc/callback"]'
+  local oidc_scopes=openid
+  local role_type=oidc
+  local user_claim=sub
+  local ttl=1h
+
+  enable_auth_type "${auth_path}" oidc
+  oidc_configure "${oidc_discovery_url}" "${auth_path}" "${oidc_client_id}" "${oidc_client_secret}" "${role_path}"
+  oidc_role_configure "${oidc_client_id}" "${allowed_redirect_uris}" "${oidc_scopes}" "${role_type}" "${user_claim}" "${role_path}" "${ttl}"
 }
 
 function main() {
@@ -113,6 +125,7 @@ function main() {
   approle
   jwt
   userpass
+  gitlab_oidc
 }
 
 main
