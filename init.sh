@@ -60,7 +60,7 @@ function jwt() {
   local certificate_name=my-certificate
   local certificate_pass=123456
   local user_id=igor
-  local jwt_issuer=www.domain.com
+  local issuer=www.domain.com
   local jwt_claim=general
   local public_key
   local jwt_token
@@ -80,8 +80,7 @@ function jwt() {
 }
 
 function userpass() {
-  printf "\n> AUTH TYPE: USER AND PASSWORD\n\n"
-  # https://stackoverflow.com/questions/64757450/how-to-set-up-vault-jwt-authentication-with-auto-auth
+  printf "\n> AUTH TYPE: User & Password\n\n"
 
   local auth_path=userpass
   local role_path=my-role
@@ -91,17 +90,20 @@ function userpass() {
   local app_token
 
   enable_auth_type "${auth_path}" userpass
-  userpass_create_user "${auth_path}" "${user}" "${pass}" "${jwt_issuer}" "${POLICY_PATH}"
-  userpass_login "${auth_path}" "${user}" "${pass}" "${jwt_issuer}"
+  userpass_create_user "${auth_path}" "${user}" "${pass}" "${issuer}" "${POLICY_PATH}"
+  userpass_login "${auth_path}" "${user}" "${pass}" "${issuer}"
   read -r app_token <&3
   token_test "${MOUNT_PATH}" "${app_token}"
 }
 
-function github_auth(){
+function gitlab_oidc() {
   # https://docs.gitlab.com/ce/integration/vault.html
+  # https://www.vaultproject.io/docs/auth/jwt#oidc-authentication
+  echo
+}
+
+function github() {
   # https://learn.hashicorp.com/tutorials/vault/getting-started-authentication
-  # https://www.vaultproject.io/docs/auth/jwt#redirect-uris
-  # https://www.vaultproject.io/api-docs/auth/jwt
   echo
 }
 
