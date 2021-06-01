@@ -15,7 +15,7 @@ source jwt.sh
 source user_pass.sh
 source oidc.sh
 
-# N unseal key > combined key > encrypted master key > encrypted keyring > encrypted data
+# N unseal key (shamir) > combined key > encrypted master key > encrypted keyring > encrypted data
 
 MOUNT_PATH=my-secret
 POLICY_PATH=my-policy
@@ -98,6 +98,8 @@ function userpass() {
 }
 
 function gitlab_oidc() {
+  # https://docs.gitlab.com/ce/integration/vault.html
+  # https://www.vaultproject.io/docs/auth/jwt#oidc-authentication
   # https://learn.hashicorp.com/tutorials/vault/getting-started-authentication
   # https://www.vaultproject.io/docs/auth/jwt#redirect-uris
   # https://www.vaultproject.io/api-docs/auth/jwt
