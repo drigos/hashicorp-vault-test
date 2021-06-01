@@ -1,24 +1,27 @@
 function oidc_configure() {
-  local oidc_discovery_url=$1
-  local auth_path=$2
+  local auth_path=$1
+  local oidc_discovery_uri=$2
   local oidc_client_id=$3
   local oidc_client_secret=$4
-  local role=$5
-  curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" --data "{\"oidc_discovery_url\": \"${oidc_discovery_url}\", \"role_type\": \"${auth_path}\", \"oidc_client_id\": \"${oidc_client_id}\", \"oidc_client_secret\": \"${oidc_client_secret}\", \"default_role\": \"${role}\"}" $VAULT_ADDR/auth/oidc/config
-  echo "App: Configured OIDC"
+  local default_role=$5
+  local bound_issuer=$6
+
+  curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d "{\"oidc_discovery_url\": \"${oidc_discovery_uri}\", \"oidc_client_id\": \"${oidc_client_id}\", \"oidc_client_secret\": \"${oidc_client_secret}\", \"default_role\": \"${default_role}\", \"bound_issuer\": \"${bound_issuer}\"}" "${VAULT_ADDR}/auth/${auth_path}/config"
+  echo "Configured OIDC"
 }
 
-function oidc_role_configure() {
-  # bound_audiences = oidc_client_id
-  # policies = role_path
-  local oidc_client_id=$1
-  local allowed_redirect_uris=$2
-  local oidc_scopes=$3
-  local role_type=$4
-  local user_claim=$5
-  local role_path=$6
-  local ttl=$7
+function oidc_create_role() {
+  local auth_path=$1
+  local role_path=$2
+  local role_type=$3
+  local oidc_client_id=$4
+  local allowed_redirect_uris=$5
+  local bound_claim=$6
+  local policy_name=$7
+  local oidc_scopes=openid
+  local user_claim=sub
+  local ttl=1h
 
-  curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" --data "{\"bound_audiences\": \"${oidc_client_id}\", \"allowed_redirect_uris\":${allowed_redirect_uris}, \"oidc_scopes\": \"${oidc_scopes}\", \"role_type\": \"${role_type}\", \"user_claim\": \"${user_claim}\", \"policies\": \"${role_path}\", \"ttl\": \"${ttl}\"}" $VAULT_ADDR/auth/oidc/role/${role_path}
-  echo "App: Configured OIDC role"
+  curl -s -X POST -H "X-Vault-Token: ${ROOT_TOKEN}" -d "{\"role_type\": \"${role_type}\", \"bound_audiences\": \"${oidc_client_id}\", \"allowed_redirect_uris\": ${allowed_redirect_uris}, \"policies\": [\"${policy_name}\"], \"oidc_scopes\": \"${oidc_scopes}\", \"user_claim\": \"${user_claim}\", \"ttl\": \"${ttl}\", \"bound_claims\": { \"groups\": [\"${bound_claim}\"] } }" "${VAULT_ADDR}/auth/${auth_path}/role/${role_path}" > /dev/null
+  echo "Configured role [${role_path}]"
 }

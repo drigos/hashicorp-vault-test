@@ -83,7 +83,7 @@ function jwt() {
 function userpass() {
   printf "\n> AUTH TYPE: User & Password\n\n"
 
-  local auth_path=userpass
+  local auth_path=my-userpass
   local role_path=my-role
   local user=igor
   local pass=123456
@@ -100,25 +100,23 @@ function userpass() {
 function gitlab_oidc() {
   # https://docs.gitlab.com/ce/integration/vault.html
   # https://www.vaultproject.io/docs/auth/jwt#oidc-authentication
-  # https://learn.hashicorp.com/tutorials/vault/getting-started-authentication
-  # https://www.vaultproject.io/docs/auth/jwt#redirect-uris
-  # https://www.vaultproject.io/api-docs/auth/jwt
-
   printf "\n> AUTH TYPE: Gitlab\n\n"
-  local auth_path=oidc
+
+  local auth_path=my-oidc
   local role_path=my-role
-  local oidc_discovery_url=https://gitlab.com
-  local oidc_client_id=RANDOM_ID
-  local oidc_client_secret=RANDOM_SECRET
-  local allowed_redirect_uris='["http://localhost:8200/ui/vault/auth/oidc/oidc/callback", "http://127.0.0.1:8200/ui/vault/auth/oidc/oidc/callback", "http://localhost:8250/oidc/callback"]'
-  local oidc_scopes=openid
+  local oidc_discovery_uri=https://gitlab.com
+  local issuer=www.domain.com
   local role_type=oidc
-  local user_claim=sub
-  local ttl=1h
+  # Needs to be configured in GitLab
+  local oidc_client_id=${GITLAB_APPLICATION_ID}
+  local oidc_client_secret=${GITLAB_SECRET}
+  local allowed_redirect_uris="[\"http://localhost:8200/ui/vault/auth/${auth_path}/oidc/callback\", \"http://localhost:8250/oidc/callback\"]"
+  # Allow access only to members this group
+  local bound_claim=soufan/drafts
 
   enable_auth_type "${auth_path}" oidc
-  oidc_configure "${oidc_discovery_url}" "${auth_path}" "${oidc_client_id}" "${oidc_client_secret}" "${role_path}"
-  oidc_role_configure "${oidc_client_id}" "${allowed_redirect_uris}" "${oidc_scopes}" "${role_type}" "${user_claim}" "${role_path}" "${ttl}"
+  oidc_configure "${auth_path}" "${oidc_discovery_uri}" "${oidc_client_id}" "${oidc_client_secret}" "${role_path}" "${issuer}"
+  oidc_create_role "${auth_path}" "${role_path}" "${role_type}" "${oidc_client_id}" "${allowed_redirect_uris}" "${bound_claim}" "${POLICY_PATH}"
 }
 
 function main() {
