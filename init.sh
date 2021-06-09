@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VAULT_ADDR=http://127.0.0.1:8200/v1
+export VAULT_ADDR=http://127.0.0.1:8200/v1
 
 IO_FILE=$(mktemp --suffix vault)
 exec 3<"${IO_FILE}"
@@ -102,7 +102,7 @@ function gitlab_oidc() {
   # https://www.vaultproject.io/docs/auth/jwt#oidc-authentication
   printf "\n> AUTH TYPE: Gitlab\n\n"
 
-  local auth_path=my-oidc
+  local auth_path=my-gitlab
   local role_path=my-role
   local oidc_discovery_uri=https://gitlab.com
   local issuer=www.domain.com
@@ -112,7 +112,7 @@ function gitlab_oidc() {
   local oidc_client_secret=${GITLAB_SECRET}
   local allowed_redirect_uris="[\"http://localhost:8200/ui/vault/auth/${auth_path}/oidc/callback\", \"http://localhost:8250/oidc/callback\"]"
   # Allow access only to members this group
-  local bound_claim=soufan/drafts
+  local bound_claim=${GITLAB_GROUP}
 
   enable_auth_type "${auth_path}" oidc
   oidc_configure "${auth_path}" "${oidc_discovery_uri}" "${oidc_client_id}" "${oidc_client_secret}" "${role_path}" "${issuer}"
